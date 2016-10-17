@@ -23,9 +23,17 @@ print(brick.get_device_info()) # check what brick you connected to
 from time import sleep
 
 from nxt.motor import Motor, PORT_A, PORT_B, PORT_C
+from nxt.sensor import Touch, PORT_4
 
-motorA = Motor(brick, PORT_A)
-motorB = Motor(brick, PORT_B)
+motorLeft = Motor(brick, PORT_B)
+motorRight = Motor(brick, PORT_C)
+touch = Touch(brick, PORT_4)
 
-motorA.run(power = 125)
-motorB.run(power = 125)
+while touch.is_pressed() == False:
+    
+    motorLeft.run(power = -80)
+    
+    motorRight.run(power = -80)
+    
+motorLeft.idle()
+motorRight.idle()

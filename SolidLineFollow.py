@@ -27,20 +27,31 @@ light = Light(brick, PORT_3)
 touch = Touch(brick, PORT_4)
 
 def sensorValue():
-    
+    # get light sensor value
     return light.get_lightness() 
 
 def calibrate():
-    
+    # turn on light sensor
     light.set_illuminated(True)
+    
+    # zeroes motor position
     motorLeft.reset_position(False)
     motorRight.reset_position(False)
+    
+    # calibrates black value
     black = sensorValue()
     print("Black = %d" % black)
-    motorRight.turn(60, 100, brake=True, timeout=1.5, emulate=True)
+    
+    # turns right ~30 degrees
+    motorRight.turn(80, 360, brake=True, timeout=3, emulate=True)
+    #motorLeft.turn(-80, 360, brake=True, timeout=3, emulate=True)
     sleep(0.25)
+    
+    # calibrates white value
     white = sensorValue()
-    motorRight.turn(-60, 100, brake = True, timeout=1.5, emulate=True)
+    
+    #turns back to start position
+    motorRight.turn(-80, 360, brake = True, timeout=3, emulate=True)
     print("White = %d" % white)
     return (black,white)
     
@@ -56,8 +67,9 @@ def lineFollow():
         return
         
     print("Threshold = ", threshold)
-    gain = 75
-    pwr = 55
+    
+    gain = 45
+    pwr = 75
     
     while (sensorValue() > 0) and not (touch.is_pressed()):
         
