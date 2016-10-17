@@ -32,13 +32,17 @@ def dottedLineFollow():
 	black = calibrateVal[0]
 	white = calibrateVal[1]
 	threshold = (black + white) / 2
+	
+	#repeat until button is pressed
 	while touch.is_pressed() == False:
+		#turn until sensor on arm sees black
 		while sensorValue() > threshold:
 			motorRight.run(power = 65)
 		motorRight.brake()
 		
 		#350 is a place holder for the spacing from the center of the robot to the end of the arm
 
+		#go straight until cener is over dot
 		motorRight.turn(60, 350, brake = True, timeout  = 2, emulate = True)
 		motorLeft.turn(60, 350, brake = True, timeout = 2, emulate = True)
 	
