@@ -26,6 +26,32 @@ motorRight = Motor(brick, PORT_C)
 light = Light(brick, PORT_3)
 touch = Touch(brick, PORT_4)
 
+def dottedLineFollow():
+
+	calibrateVal = calibrate()
+	black = calibrateVal[0]
+	white = calibrateVal[1]
+	threshold = (black + white) / 2
+	
+	# go until center of robot is over initial dot
+	motorRight.turn(60, 350, brake = True, timeout  = 2, emulate = True)
+	motorLeft.turn(60, 350, brake = True, timeout = 2, emulate = True)
+	
+	#repeat until touch sensor is pressed
+	while touch.is_pressed() == False:
+		#turn until sensor on arm sees black
+		while sensorValue() > threshold:
+			motorRight.run(power = 65)
+			motorLeft.run(power = -65)
+		motorRight.brake()
+		
+		#350 is a place holder for the spacing from the center of the robot to the end of the arm
+
+		#go straight until cetner is over dot
+		motorRight.turn(60, 350, brake = True, timeout  = 2, emulate = True)
+		motorLeft.turn(60, 350, brake = True, timeout = 2, emulate = True)
+	
+
 def sensorValue():
     
     return light.get_lightness() 
