@@ -1,0 +1,12 @@
+Click on Bluetooth icon in top right corner (next to the battery symbol)
+Go to 'Bluetooth Settings'
+There will be a plus sign in the lower left to add devices
+Wait for the search to return user friendly names
+Wait a little, then click on device once
+Click on PIN-settings
+Select PIN 1234
+Connect to device
+Confirm pin code on NXT screen when prompted
+
+NOTE: If you do not see a bluetooth icon, then you either do not have
+bluetooth hardware OR you connected the stick to a USB 3.0 port.
