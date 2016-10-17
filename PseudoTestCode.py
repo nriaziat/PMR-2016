@@ -32,7 +32,7 @@ def dottedLineFollow():
 	black = calibrateVal[0]
 	white = calibrateVal[1]
 	threshold = (black + white) / 2
-	while True:
+	while touch.is_pressed() == False:
 		while sensorValue() > threshold:
 			motorRight.run(power = 65)
 		motorRight.brake()
