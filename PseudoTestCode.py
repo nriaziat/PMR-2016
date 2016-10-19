@@ -23,34 +23,10 @@ from nxt.motor import Motor, PORT_A, PORT_B, PORT_C
 
 motorLeft = Motor(brick, PORT_B)
 motorRight = Motor(brick, PORT_C)
+armMotor = Motor(brick, PORT_A)
 light = Light(brick, PORT_3)
 touch = Touch(brick, PORT_4)
-
-def dottedLineFollow():
-
-	calibrateVal = calibrate()
-	black = calibrateVal[0]
-	white = calibrateVal[1]
-	threshold = (black + white) / 2
-	
-	# go until center of robot is over initial dot
-	motorRight.turn(60, 350, brake = True, timeout  = 2, emulate = True)
-	motorLeft.turn(60, 350, brake = True, timeout = 2, emulate = True)
-	
-	#repeat until touch sensor is pressed
-	while touch.is_pressed() == False:
-		#turn until sensor on arm sees black
-		while sensorValue() > threshold:
-			motorRight.run(power = 65)
-			motorLeft.run(power = -65)
-		motorRight.brake()
-		
-		#350 is a place holder for the spacing from the center of the robot to the end of the arm
-
-		#go straight until cetner is over dot
-		motorRight.turn(60, 350, brake = True, timeout  = 2, emulate = True)
-		motorLeft.turn(60, 350, brake = True, timeout = 2, emulate = True)
-	
+sonar = Ultrasonic(brick, PORT_2)
 
 def sensorValue():
     
@@ -82,10 +58,13 @@ def lineFollow():
         return
         
     print("Threshold = ", threshold)
+	
+	# tune these values for broken and dotted lines
     gain = 75
     pwr = 55
-    
+	
     while (sensorValue() > 0) and not (touch.is_pressed()):
+
         lightness = sensorValue()
         print(sensorValue())
         
@@ -103,6 +82,18 @@ def lineFollow():
         
     motorLeft.idle()
     motorRight.idle()
+	
+def binPickup():
+	while touch.is_pressed() == False:
+		if sonar.get_distance < 6:
+			armMotor.turn(90, 100, brake = True, timeout = 2, emulate = True)
+			motorLeft.run(power = 60)
+			motorRight.run(power = 60)
+			sleep(1)
+			armMotor.turn(-90, 100, brake = True, timeout = 2, emulate = True)
+		else:
+			lineFollow()
+	return
       
-lineFollow()
+binPickup()
             
