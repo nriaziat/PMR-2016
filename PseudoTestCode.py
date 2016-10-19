@@ -47,17 +47,6 @@ def calibrate():
     return (black,white)
     
 def lineFollow():
-    
-    calibrateVal = calibrate()
-    black = calibrateVal[0]
-    white = calibrateVal[1]
-    threshold = (black + white) / 2
-    
-    if abs(black - white) <= 50:
-        print("Calibration Failed. Black and white are not distinct")
-        return
-        
-    print("Threshold = ", threshold)
 	
 	# tune these values for broken and dotted lines
     gain = 75
@@ -84,13 +73,28 @@ def lineFollow():
     motorRight.idle()
 	
 def binPickup():
+	    
+    calibrateVal = calibrate()
+    black = calibrateVal[0]
+    white = calibrateVal[1]
+    threshold = (black + white) / 2
+    
+    if abs(black - white) <= 50:
+        print("Calibration Failed. Black and white are not distinct")
+        return
+        
+    print("Threshold = ", threshold)
+	
 	while touch.is_pressed() == False:
-		if sonar.get_distance < 6:
-			armMotor.turn(90, 100, brake = True, timeout = 2, emulate = True)
+		if sonar.get_distance < 6: #change this distance value 
+			armMotor.turn(90, 100, brake = True, timeout = 2, emulate = True) #change this power and tacho value
 			motorLeft.run(power = 60)
 			motorRight.run(power = 60)
 			sleep(1)
+			motorLeft.brake()
+			motorRight.brake()
 			armMotor.turn(-90, 100, brake = True, timeout = 2, emulate = True)
+			armMotor.brake()
 		else:
 			lineFollow()
 	return
