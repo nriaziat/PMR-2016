@@ -35,6 +35,7 @@ led = Light(brick, PORT_1) # experimental
 """########################################################################################"""
 
 def binIdent():
+
     n = 80
 	# incrememnts the motor power down
 	#	until the arm falls or kill-switch is pressed
@@ -48,30 +49,33 @@ def binIdent():
 			
 			#different end motor powers correspon to different bins
             if n < 20:
-			
+				
+				return(1)
                 print("Bin 1 Picked Up")
                 armMotor.idle()
 				
             elif n < 60:
-			
+				
+				return(2)
                 print("Bin 2 Picked Up")
                 armMotor.idle()
 				
             else:
 			
+				return(3)
                 print("Bin 3 Picked Up")
                 armMotor.idle()
+			
+			while sonar.get_distance() < 7:
+				armMotor.run(power = 30)
+			armMotor.brake()
+			return
 				
 		# if the arm is not down, increment n down
         else:
             n -= 5
 			
     armMotor.idle()
-
-	
-def sensorValue():
-    
-    return light.get_lightness() 
 
 	
 def calibrate():
@@ -81,14 +85,14 @@ def calibrate():
     motorLeft.reset_position(False)
     motorRight.reset_position(False)
 	
-    black = sensorValue()
+    black = light.get_lightness() 
     print("Black = %d" % black)
 	
     motorRight.turn(60, 100, brake=True, timeout=1.5, emulate=True)
 	
     sleep(0.25)
 	
-    white = sensorValue()
+    white = light.get_lightness() 
 	
     motorRight.turn(-60, 100, brake = True, timeout=1.5, emulate=True)
 	
@@ -102,10 +106,10 @@ def lineFollow():
     gain = 75
     pwr = 55
 	
-    while (sensorValue() > 0) and not (touch.is_pressed()):
+    while (light.get_lightness() > 0) and not (touch.is_pressed()):
 
-        lightness = sensorValue()
-        print(sensorValue())
+        lightness = light.get_lightness() 
+        print(light.get_lightness() )
         
         if lightness < black:
             black = lightness
@@ -157,6 +161,8 @@ def binPickup():
 			
 			armMotor.turn(-90, -delta, brake = True, timeout = 2, emulate = True)
 			armMotor.brake()
+			
+			binNum = binIdent()
 			
         else:
 			lineFollow()
