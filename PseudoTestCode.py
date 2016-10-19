@@ -16,7 +16,7 @@ else:
     
 print(brick.get_device_info()) # check what brick you connected to
 from time import sleep
-from nxt.sensor import Light, Touch
+from nxt.sensor import Light, Touch, Ultrasonic
 from nxt.sensor import PORT_1, PORT_2, PORT_3, PORT_4
 from nxt.motor import Motor, PORT_A, PORT_B, PORT_C
 
@@ -27,6 +27,24 @@ armMotor = Motor(brick, PORT_A)
 light = Light(brick, PORT_3)
 touch = Touch(brick, PORT_4)
 sonar = Ultrasonic(brick, PORT_2)
+
+def binIdent():
+    n = 80
+    while n > 0 and not touch.is_pressed():
+        armMotor.run(power = -n)
+        if sonar.get_distance() < 8:
+            if n < 40:
+                return #bin 1 
+                armMotor.idle()
+            elif n < 80:
+                return #bin 2 
+                armMotor.idle()
+            else:
+                return #bin 3
+                armMotor.idle()
+        else:
+            n -= 1 
+    armMotor.idle()
 
 def sensorValue():
     
@@ -85,19 +103,19 @@ def binPickup():
         
     print("Threshold = ", threshold)
 	
-	while touch.is_pressed() == False:
-		if sonar.get_distance < 6: #change this distance value 
-			armMotor.turn(90, 100, brake = True, timeout = 2, emulate = True) #change this power and tacho value
+    while touch.is_pressed() == False:
+        if sonar.get_distance < 15: 
+			armMotor.turn(90, 100, brake = True, timeout = 2, emulate = True)
 			motorLeft.run(power = 60)
 			motorRight.run(power = 60)
-			sleep(1)
+			sleep(0.25)
 			motorLeft.brake()
 			motorRight.brake()
 			armMotor.turn(-90, 100, brake = True, timeout = 2, emulate = True)
 			armMotor.brake()
-		else:
+        else:
 			lineFollow()
 	return
-      
-binPickup()
+    
+binIdent()
             
