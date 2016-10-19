@@ -27,23 +27,40 @@ armMotor = Motor(brick, PORT_A)
 light = Light(brick, PORT_3)
 touch = Touch(brick, PORT_4)
 sonar = Ultrasonic(brick, PORT_2)
+led = Light(brick, PORT_1) # experimental
 
 def binIdent():
     n = 80
-    while n > 0 and not touch.is_pressed():
+	# incrememnts the motor power down
+	#	until the arm falls or kill-switch is pressed
+    while n > 10 and not touch.is_pressed():
+	
         armMotor.run(power = -n)
+		sleep(0.25)
+		
+		# checks if arm has fallen
         if sonar.get_distance() < 8:
-            if n < 40:
-                return #bin 1 
+			
+			#different end motor powers correspon to different bins
+            if n < 20:
+			
+                print("Bin 1 Picked Up")
                 armMotor.idle()
-            elif n < 80:
-                return #bin 2 
+				
+            elif n < 60:
+			
+                print("Bin 2 Picked Up")
                 armMotor.idle()
+				
             else:
-                return #bin 3
+			
+                print("Bin 3 Picked Up")
                 armMotor.idle()
+				
+		# if the arm is not down, increment n down
         else:
-            n -= 1 
+            n -= 5
+			
     armMotor.idle()
 
 def sensorValue():
@@ -53,14 +70,21 @@ def sensorValue():
 def calibrate():
     
     light.set_illuminated(True)
+	
     motorLeft.reset_position(False)
     motorRight.reset_position(False)
+	
     black = sensorValue()
     print("Black = %d" % black)
+	
     motorRight.turn(60, 100, brake=True, timeout=1.5, emulate=True)
+	
     sleep(0.25)
+	
     white = sensorValue()
+	
     motorRight.turn(-60, 100, brake = True, timeout=1.5, emulate=True)
+	
     print("White = %d" % white)
     return (black,white)
     
@@ -105,16 +129,29 @@ def binPickup():
 	
     while touch.is_pressed() == False:
         if sonar.get_distance < 15: 
-			armMotor.turn(90, 100, brake = True, timeout = 2, emulate = True)
+		
+			pos1 = armMotor.get_tacho()
+			
+			while sonar.get_distance > 10:
+				armMotor.run(power = 20)
+			armMotor.idle()
+			pos2 = armMotor.get_tacho()
+			
+			delta = pos2 - pos1 
 			motorLeft.run(power = 60)
 			motorRight.run(power = 60)
+			
 			sleep(0.25)
+			
 			motorLeft.brake()
 			motorRight.brake()
-			armMotor.turn(-90, 100, brake = True, timeout = 2, emulate = True)
+			
+			armMotor.turn(-90, -delta, brake = True, timeout = 2, emulate = True)
 			armMotor.brake()
+			
         else:
 			lineFollow()
+			
 	return
     
 binIdent()
