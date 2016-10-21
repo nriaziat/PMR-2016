@@ -35,44 +35,67 @@ led = Light(brick, PORT_1) # experimental
 """########################################################################################"""
 
 def binIdent():
-
-    n = 0
+    
+    n = 65
 	# incrememnts the motor power up
 	#	until the arm raises or kill-switch is pressed
-    while n < 100 and not touch.is_pressed():
-	
-        armMotor.run(power = n)
-		sleep(0.25)
+    while n < 123 and not touch.is_pressed():
+        
+        print("running bin ident, power = %d" %n)
+        print(sonar.get_distance())
+        armMotor.run(power = -n)
+        sleep(.05)
+        
 		
 		# checks if arm has raised
-        if sonar.get_distance() > 8:
-			
-			#different end motor powers correspond to different bins
-            if n < 20:
+        if sonar.get_distance() > 10:
+            
+            #different end motor powers correspond to different bins 
+            if n < 79:
+            
+                print("Organic Material Bin Picked Up")
+                print(n)
+                armMotor.brake()
+                brick.play_tone_and_wait(400, 250)
+                return(1)
+                
 				
-				return(1)
-                print("Bin 1 Picked Up")
+            elif n < 100:
 				
-            elif n < 60:
-				
-				return(2)
-                print("Bin 2 Picked Up")
-  
-				
+                print("Ceramic Material Picked Up")
+                print(n)
+                armMotor.brake()
+                brick.play_tone_and_wait(500, 250)
+                sleep(.1)
+                brick.play_tone_and_wait(500, 250)
+                return(2)
+            
             else:
-			
-				return(3)
-                print("Bin 3 Picked Up")
+                
+                print("Metallic Material Bin Picked Up")
+                print(n)
+                armMotor.brake()
+                brick.play_tone_and_wait(600, 250)
+                sleep(.1)
+                brick.play_tone_and_wait(600, 250)
+                sleep(.1)
+                brick.play_tone_and_wait(600, 250)
+                return(3)
+				
+        elif n > 121:
+            print("Metallic Material Bin Identified")
+            armMotor.brake()
+            brick.play_tone_and_wait(600, 250)
+            sleep(.1)
+            brick.play_tone_and_wait(600, 250)
+            sleep(.1)
+            brick.play_tone_and_wait(600, 250)
+            return(3)
 
-			
-			while sonar.get_distance() < 7:
-				armMotor.run(power = n)
-			armMotor.brake()
-			return
 				
 		# if the arm is not up, increment n up
         else:
-            n += 3
+            n += 2
 	
 		
     armMotor.idle()
@@ -128,7 +151,7 @@ def lineFollow():
 	
 	
 def binPickup():
-	    
+    
     """calibrateVal = calibrate()
     black = calibrateVal[0]
     white = calibrateVal[1]
@@ -141,15 +164,14 @@ def binPickup():
     print("Threshold = ", threshold)"""
 	
     while touch.is_pressed() == False:
-        if sonar.get_distance < 15: 
-			
-			while sonar.get_distance > 10:
-				
-				armMotor.run(power = 20)
-				
-			armMotor.idle()
-			
-			#motorLeft.run(power = 60)
+        print(sonar.get_distance())
+        if sonar.get_distance() < 15:
+
+            armMotor.run(power = 40)
+            sleep(.5)
+            armMotor.idle()
+
+            #motorLeft.run(power = 60)
 			#motorRight.run(power = 60)
 			
 			#sleep(0.25)
@@ -157,13 +179,15 @@ def binPickup():
 			#motorLeft.brake()
 			#motorRight.brake()
 			
-			binNum = binIdent()
+            binNum = binIdent()
+            return
 			
         #else:
 			#lineFollow()
-			
-	return
-    
-	
-binPickup()
+
+binIdent()
+
+
+
+
             
