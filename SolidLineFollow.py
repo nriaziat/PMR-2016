@@ -26,10 +26,6 @@ motorRight = Motor(brick, PORT_C)
 light = Light(brick, PORT_3)
 touch = Touch(brick, PORT_4)
 
-def sensorValue():
-    # get light sensor value
-    return 
-
 def calibrate():
     # turn on light sensor
     light.set_illuminated(True)
