@@ -57,13 +57,20 @@ def calibrate():
     
 def lineFollow():
     
+	# takes calibration values from calibrate function
     calibrateVal = calibrate()
+	
+	#seperates white and black light values from funciton output
     black = calibrateVal[0]
     white = calibrateVal[1]
+	
+	# sets the threshold to the average of white and black
     threshold = (black + white) / 2
     
+	# checks if black and white values are too close
     while abs(black - white) <= 50:
-        print("Calibration Failed. Black and white are not distinct")
+		# recalibrates PMR when user pressed touch sensor
+        print("Calibration Failed. Black and white are not distinct. Reset PMR and press the touch sensor to re-calibrate.")
         if touch.is_pressed == True:
 			calibrateVal = calibrate()
 			black = calibrateVal[0]
@@ -72,26 +79,38 @@ def lineFollow():
         
     print("Threshold = ", threshold)
     
+	# sets error sensitivity
     gain = 45
+	
+	# sets general drive power
     pwr = 75
     
+	#checks to make sure light sensor is plugged in, kill switch isnt pressed
     while (light.get_lightness() > 0) and not (touch.is_pressed()):
         
+		# polls light sensor value
         lightness = light.get_lightness() 
         print(light.get_lightness())
         
+		# recalibrates black if darker black found
         if lightness < black:
             black = lightness
             
+		# recalibrates white if lighter white found
         if lightness > white:
             white = lightness
             
+			
         error = lightness - threshold
+		
+		#normalize correction value to sensor range
         correction = (error * gain) / (white - black)
         
+		# run motors based on how far off the line PMR is
         motorRight.run(power = -(pwr + correction))
         motorLeft.run(power = -(pwr - correction))
-        
+     
+	# idle motors if sensor unplugged or killswitch pressed
     motorLeft.idle()
     motorRight.idle()
       
