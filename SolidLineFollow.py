@@ -28,7 +28,7 @@ touch = Touch(brick, PORT_4)
 
 def sensorValue():
     # get light sensor value
-    return light.get_lightness() 
+    return 
 
 def calibrate():
     # turn on light sensor
@@ -39,7 +39,7 @@ def calibrate():
     motorRight.reset_position(False)
     
     # calibrates black value
-    black = sensorValue()
+    black = light.get_lightness()
     print("Black = %d" % black)
     
     # turns right ~30 degrees
@@ -48,7 +48,7 @@ def calibrate():
     sleep(0.25)
     
     # calibrates white value
-    white = sensorValue()
+    white = light.get_lightness()
     
     #turns back to start position
     motorRight.turn(-80, 360, brake = True, timeout=3, emulate=True)
@@ -62,19 +62,23 @@ def lineFollow():
     white = calibrateVal[1]
     threshold = (black + white) / 2
     
-    if abs(black - white) <= 50:
+    while abs(black - white) <= 50:
         print("Calibration Failed. Black and white are not distinct")
-        return
+        if touch.is_pressed == True:
+			calibrateVal = calibrate()
+			black = calibrateVal[0]
+			white = calibrateVal[1]
+			threshold = (black + white) / 2
         
     print("Threshold = ", threshold)
     
     gain = 45
     pwr = 75
     
-    while (sensorValue() > 0) and not (touch.is_pressed()):
+    while (light.get_lightness() > 0) and not (touch.is_pressed()):
         
-        lightness = sensorValue()
-        print(sensorValue())
+        lightness = light.get_lightness() 
+        print(light.get_lightness())
         
         if lightness < black:
             black = lightness
