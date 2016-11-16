@@ -1,5 +1,6 @@
 import nxt
 import nxtConnect # has to be in search path
+import time
 
 brickName = "Team60"
 useUSB = False
@@ -15,20 +16,11 @@ else:
     brick = nxtConnect.btConnect(brickName)
     
 print(brick.get_device_info()) # check what brick you connected to
-
-#######################################################################
-## Then, you can specify what you want the NXT to do
-#######################################################################
-
 from time import sleep
 
-from nxt.motor import Motor, PORT_A, PORT_B, PORT_C
-from nxt.sensor import Touch, PORT_4
+from nxt.motor import Motor, PORT_A
 
-motorLeft = Motor(brick, PORT_B)
-motorRight = Motor(brick, PORT_C)
-touch = Touch(brick, PORT_4)
+armMotor = Motor(brick, PORT_A)
 
-motorLeft.run(power = -70)
-    
-motorRight.run(power = -120)
+
+armMotor.turn(-80, 120, brake=True, timeout=3, emulate=True)

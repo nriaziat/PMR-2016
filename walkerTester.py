@@ -23,12 +23,27 @@ print(brick.get_device_info()) # check what brick you connected to
 from time import sleep
 
 from nxt.motor import Motor, PORT_A, PORT_B, PORT_C
-from nxt.sensor import Touch, PORT_4
+from nxt.sensor import Touch, PORT_4, PORT_3
 
-motorLeft = Motor(brick, PORT_B)
-motorRight = Motor(brick, PORT_C)
-touch = Touch(brick, PORT_4)
+turningMotor = Motor(brick, PORT_B)
+walkingMotor = Motor(brick, PORT_C)
+turnerSwitch = Touch(brick, PORT_4)
+legPosition = Touch(brick, PORT_3)
 
-motorLeft.run(power = -70)
+while True:
+    if turnerSwitch.is_pressed() == False:
+        turningMotor.run(power = 0)
+        a = 0
+        walkingMotor.run(power = 120)
     
-motorRight.run(power = -120)
+    else:
+        if legPosition.is_pressed() == False:
+            walkingMotor.run(power = 100)
+        else:
+            a = 1
+        if a == 1:
+            walkingMotor.run(power = 0)
+            walkingMotor.brake()
+            turningMotor.run(power = 120)
+        
+        

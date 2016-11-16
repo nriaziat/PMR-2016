@@ -36,41 +36,41 @@ led = Light(brick, PORT_1) # experimental
 
 def binIdent():
     
-    n = 123
+    n = 50
 
 	#wait .25 seconds after the kill-switch is released
-	sleep(.25)		
+    sleep(.25)		
 
-	while n > 0:
-		print("Bin Identification Running, power = %d" %n)
+    while n > 0:
+        print("Bin Identification Running, power = %d" %n)
 		# print(sonar.get_distance())
-		armMotor.run(power = n)
-		sleep(.02)
+        armMotor.run(power = n)
+        sleep(.02)
         
 		# if arm has fallen
-		if sonar.get_distance() < 10:
+        if sonar.get_distance() < 10:
             
 			#different end motor powers correspond to different bins 
-			if n < 79:
+            if n < 79:
             
-				print("Organic Material Bin Picked Up, Power = %d" %n)
-				print(n)
-				armMotor.brake()
-				brick.play_tone_and_wait(400, 250)
-				return(1)
+                print("Organic Material Bin Picked Up, Power = %d" %n)
+                print(n)
+                armMotor.brake()
+                brick.play_tone_and_wait(400, 250)
+                return(1)
                 
 				
-			elif n < 100:
+            elif n < 100:
 				
-				print("Ceramic Material Picked Up, Power = %d" %n)
-				print(n)
-				armMotor.brake()
-				brick.play_tone_and_wait(500, 250)
-				sleep(.1)
-				brick.play_tone_and_wait(500, 250)
-				return(2)
+                print("Ceramic Material Picked Up, Power = %d" %n)
+                print(n)
+                armMotor.brake()
+                brick.play_tone_and_wait(500, 250)
+                sleep(.1)
+                brick.play_tone_and_wait(500, 250)
+                return(2)
             
-			else:
+            else:
                 
 				print("Metallic Material Bin Picked Up, Power = %d" %n)
 				armMotor.brake()
@@ -82,7 +82,7 @@ def binIdent():
 				return(3)
 				
 			# if the arm is not up, increment n up
-		else:
+        else:
 			n -= 2
 				
 
@@ -112,8 +112,8 @@ def calibrate():
 def lineFollow():
 	
 	# tune these values for broken and dotted lines
-    gain = 75
-    pwr = 55
+    gain = 20
+    pwr = 80
 	
     while (light.get_lightness() > 0) and not (touch.is_pressed()):
 
@@ -146,7 +146,6 @@ def binPickup():
     if abs(black - white) <= 50:
         print("Calibration Failed. Black and white are not distinct")
         return
-        
     print("Threshold = ", threshold)"""
 	
     while touch.is_pressed() == False:
@@ -167,18 +166,22 @@ def binPickup():
 			
             binNum = binIdent()
             return
-		else:
+        else:
 			lineFollow()
 
 			
 while True:
-	 if touch.is_pressed() == True:
-		binIdent()
-	else:
-		
-	
+    if touch.is_pressed() == True:
+        binIdent()
 
 
-
-
-            
+def demo():
+    if sonar.get_distance() < 20:
+        binPickup()
+        binIdent()
+    while sonar.get_distance() < 20 : #and bin location sensor doesnt sense the bin location
+        lineFollow()
+        
+    
+binIdent()
+#demo()
