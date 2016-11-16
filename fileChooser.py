@@ -1,0 +1,409 @@
+import nxt
+import nxtConnect # has to be in search path
+import time
+
+brickName = "Team60"
+useUSB = False
+
+if useUSB:
+    brick = nxt.find_one_brick(
+        name = brickName,
+        strict = True,
+        method = nxt.locator.Method(usb = True, bluetooth = True))
+else:
+    # the bluetooth function of the nxt library works too, but "wastes"
+    # time searching for devices.
+    brick = nxtConnect.btConnect(brickName)
+    
+print(brick.get_device_info()) # check what brick you connected to
+from time import sleep
+
+from nxt.motor import Motor, PORT_A, PORT_B, PORT_C
+from nxt.sensor import Touch, PORT_4, PORT_3, PORT_2, Light, PORT_1, Ultrasonic
+
+#from basicFunctions import step, calibrate
+
+light = Light(brick, PORT_1)
+turningMotor = Motor(brick, PORT_B)
+walkingMotor = Motor(brick, PORT_C)
+armMotor = Motor(brick, PORT_A)
+legPosition = Touch(brick, PORT_3)
+ultrasonic = Ultrasonic(brick, PORT_2)
+compass = Ultrasonic(brick, PORT_4)
+
+def step(forwardPower):
+    #print('stepping')
+    walkingMotor.run(power = forwardPower)
+    sleep(.1)
+    while True:
+        if legPosition.is_pressed() == True:
+            walkingMotor.run(power = 0)
+            walkingMotor.brake()
+            return
+            
+def calibrate():
+    # turn on light sensor
+    light.set_illuminated(True)
+    if not legPosition.is_pressed:
+        step(90)
+    
+    sleep(0.25)
+    
+    # calibrates black value
+    black = light.get_lightness()
+    print("Black = %d" % black)
+    
+    # turns right ~30 degrees
+    turningMotor.run(power = 70)
+    sleep(0.2)
+    turningMotor.brake()
+    sleep(.5)
+    
+    # calibrates white value
+    white = light.get_lightness()
+
+    turningMotor.run(power = -70)
+    sleep(.15)
+    turningMotor.brake()
+    print("White = %d" % white)
+    threshold = ( black + white) / 2
+    return (black, white, threshold)
+
+def compassCal():
+    startPos = turningMotor.get_tacho().tacho_count
+    print(startPos)
+    currPos = startPos
+    turningMotor.run(70)
+    minVal = compass.get_distance()
+    maxVal = minVal
+    start = time.time()
+    while abs(currPos - startPos) > 5 and time.time() - start < .2:
+        currPos = turningMotor.get_tacho().tacho_count
+        print(currPos)
+        currCompass = compass.get_distance()
+        print(currPos, currCompass)
+        if currCompass > maxVal:
+            maxVal = currCompass
+        elif currCompass < minVal:
+            minVal = currCompass
+    turningMotor.run(0)
+    turningMotor.idle()
+    print(minVal, maxVal)
+    return minVal, maxVal
+            
+def findLine(threshold, black, white):
+    start = time.time()
+    timeOut = 1
+    n = 0
+    if light.get_lightness() < threshold:
+        turningMotor.run(power = 60)
+        while light.get_lightness() < threshold:
+            if time.time() - start < timeOut:
+                pass
+            elif n == 0:
+                start = time.time()
+                turningMotor.run(power = -60)
+                timeOut *= 2
+                print("1st time")
+                n += 1
+            elif n == 1:
+                start = time.time()
+                turningMotor.run(power = 60)
+                timeOut = 1
+                print("2nd time")
+                n += 1
+            else:
+                print("return")
+                turningMotor.brake()
+                return
+        turningMotor.brake()
+        turningMotor.run(power = -70)
+        print('ant')
+        sleep(.2)
+        turningMotor.brake()
+        return
+    else:
+        turningMotor.run(power = -60)
+        while light.get_lightness() > threshold:
+            if time.time() - start < timeOut:
+                pass
+            elif n == 0:
+                start = time.time()
+                turningMotor.run(power = 60)
+                timeOut *= 2
+                print("1st time")
+                n += 1
+            elif n == 1:
+                start = time.time()
+                turningMotor.run(power = -60)
+                timeOut = 1.5
+                print("2nd time")
+                n += 1
+            else:
+                print("return")
+                turningMotor.brake()
+                return
+        turningMotor.brake()
+        turningMotor.run(power = 70)
+        sleep(.1)
+        turningMotor.brake()
+        return
+    
+
+    '''
+    print('turning')
+    initialLightness = light.get_lightness()
+    timeOut = .5
+
+    # determine direction to turn
+    if initialLightness < threshold:
+        onBlack = 1
+    else:
+        onBlack = -1
+    
+    start = time.time()
+    
+    turningMotor.run(power = onBlack * turnPower)
+    
+    n = 0
+    
+    while True:
+        currLightness = light.get_lightness()
+      
+        #print(currLightness)
+        if (onBlack == 1 and currLightness > threshold) or (onBlack == -1 and currLightness <= threshold):
+            turningMotor.brake()
+            return
+        elif time.time() - start > timeOut:
+            n += 1
+            print(n)
+            if n == 2:
+                start = time.time()
+                while time.time() - start > 2 * timeOut:
+                    turningMotor.run(power = onBlack * turnPower)
+            elif n == 3:
+                return
+            turningMotor.run(power = onBlack * turnPower)
+            print('timeOut')
+            start = time.time() 
+    '''
+
+def lineFollow(threshold, black, white):
+    forwardPower = 120
+    step(forwardPower)
+    findLine(threshold, black, white)
+    turningMotor.brake()
+    walkingMotor.brake()
+    
+def binPickup():
+    while ultrasonic.get_distance() > 6 and ultrasonic.get_distance() < 240:
+        print(ultrasonic.get_distance())
+        step(90)
+    sleep(1)
+    print("picking up")
+    armMotor.run(power = -80)
+    sleep(.3)
+    armMotor.brake()
+    return
+    
+def binID():
+    initialPos = armMotor.get_tacho().tacho_count
+    startTime = time.time()
+    armMotor.run(power = -85)
+    while abs(armMotor.get_tacho().tacho_count - initialPos) < 70:
+        pass
+    armMotor.brake()
+    finalTime = time.time() - startTime
+    print(finalTime)
+    '''n = 40
+    initialPos = armMotor.get_tacho().tacho_count
+    print(initialPos)
+    while n < 124:
+        armMotor.run(-n)
+        if abs(armMotor.get_tacho().tacho_count - initialPos) > 120:
+            print('done')
+            #armMotor.turn(-n, 120)
+            break
+        else:
+            n += 1
+    print(n)
+    armMotor.brake()
+    '''      
+    if finalTime < .42: #organic and ceramic are ~ the same time at power -85, maybe try a lower motor power first
+        #beep a shitton
+        binIdentity = 'Organic Bin'
+        brick.play_tone_and_wait(500, 250)
+        
+    elif finalTime < .5:
+        #beep also a shitton
+        binIdentity = 'Ceramic Bin'
+        brick.play_tone_and_wait(500, 250)
+        sleep(.1)
+        brick.play_tone_and_wait(500, 250)
+    else:
+        # beep a lot of tons of shit
+        binIdentity = 'Metal Bin'
+        brick.play_tone_and_wait(500, 250)
+        sleep(.1)
+        brick.play_tone_and_wait(500, 250)
+        sleep(.1)
+        brick.play_tone_and_wait(500, 250)
+        
+    return(binIdentity)
+    
+def binDropOff():
+    
+    #stop
+    #turn 90
+    #drop bin
+    #backoff
+    #turn -90
+    return
+
+def taskOne():
+    while True:
+        try:
+            walkingMotor.run(power = 120)
+        except KeyboardInterrupt:
+            armMotor.idle()
+            turningMotor.idle()
+            walkingMotor.idle()
+            return
+    
+def taskTwo():
+    calVals = calibrate()
+    black = calVals[0]
+    white = calVals[1]
+    threshold = calVals[2]
+    while True:
+        try:
+            lineFollow(threshold, black, white)
+        except KeyboardInterrupt:
+            armMotor.idle()
+            turningMotor.idle()
+            walkingMotor.idle()
+            break
+    return        
+       
+def taskFour():
+    binHeight = 12
+    
+    calVals = calibrate()
+    black = calVals[0]
+    white = calVals[1]
+    threshold = calVals[2]
+    
+    initialCompass = compass.get_distance()
+    delta = 30
+    minVal = initialCompass - delta
+    maxVal = initialCompass + delta
+    
+    while True:
+        try:
+            compassReading = compass.get_distance()
+            if not (minVal < compassReading < maxVal):
+                for i in range(3):
+                    turningMotor.idle()
+                    walkingMotor.idle()
+                    brick.play_tone_and_wait(500, 250)
+                print('magnet found')
+                return
+            else:
+                lineFollow(threshold, black, white)
+        except KeyboardInterrupt:
+            armMotor.idle()
+            turningMotor.idle()
+            walkingMotor.idle()
+            return
+ 
+def taskFive():
+    calVals = calibrate()
+    black = calVals[0]
+    white = calVals[1]
+    threshold = calVals[2]
+    
+    armMotor.run(50)
+    sleep(.1)
+    armMotor.idle()
+    
+    while True:
+        try:
+            print(ultrasonic.get_distance())
+            if ultrasonic.get_distance() > 15:
+                lineFollow(threshold, black, white)
+                
+            else:
+                binPickup()
+                turningMotor.turn(35, 150)
+                turningMotor.brake()
+                sleep(.5)
+                n = 0
+                while n < 10:
+                    findLine(threshold,black,white)
+                    step(120)
+                    n += 1
+                print("setting down")
+                armMotor.run(power = 70)
+                sleep(.5)
+                armMotor.idle()
+                turningMotor.brake()
+                for i in range(5):
+                    step(-120)
+                
+                break
+
+        except KeyboardInterrupt:
+            armMotor.idle()
+            walkingMotor.idle()
+            turningMotor.idle()
+            return
+
+def taskSix():
+    try:
+        print(binID())
+        armMotor.run(60)
+        sleep(.1)
+        armMotor.idle()
+    except KeyboardInterrupt:
+        armMotor.idle()
+        turningMotor.idle()
+        walkingMotor.idle()
+    return
+    
+def taskInput():
+    task = raw_input("Input task number: ")
+    if task == '1':
+        task = taskOne
+    elif task == '2':
+        task = taskTwo
+    elif task == '3':
+        task = taskOne
+    elif task =='4':
+        task = taskFour
+    elif task == '5':
+        task = taskFive
+    elif task == '6':
+        task = taskSix
+    else:
+        return
+    return task
+    
+def main():
+    while True:
+     
+        task = taskInput()
+        print(task)
+        task()
+        
+        while True:
+            repeat = raw_input("Press Enter to repeat... ")
+        
+            if repeat != '':
+                
+                task = taskInput()
+                task()
+                
+            else:
+                task()
+    
+main()
