@@ -23,13 +23,13 @@ from nxt.sensor import Touch, PORT_4, PORT_3, PORT_2, Light, PORT_1, Ultrasonic
 
 #from basicFunctions import step, calibrate
 
-#light = Light(brick, PORT_1)
-#turningMotor = Motor(brick, PORT_B)
+light = Light(brick, PORT_1)
+turningMotor = Motor(brick, PORT_B)
 walkingMotor = Motor(brick, PORT_C)
-#armMotor = Motor(brick, PORT_A)
+armMotor = Motor(brick, PORT_A)
 legPosition = Touch(brick, PORT_3)
-#ultrasonic = Ultrasonic(brick, PORT_2)
-#compass = Ultrasonic(brick, PORT_4)
+ultrasonic = Ultrasonic(brick, PORT_2)
+compass = Ultrasonic(brick, PORT_4)
 
 def step(forwardPower):
     #print('stepping')
@@ -237,18 +237,16 @@ def lineFollow(threshold, black, white):
     findLine(threshold, black, white)
     
 def binPickup():
-    brick.play_tone_and_wait(2000, 250)
     while ultrasonic.get_distance() > 6 and ultrasonic.get_distance() < 240:
         step(90)
     step(90)
     sleep(1)
     print("picking up")
-    armMotor.run(power = -80)
-    sleep(.3)
-    armMotor.brake()
-    return
+    binIdentity = binID()
+    return(binIdentity)
     
 def binID():
+    
     initialPos = armMotor.get_tacho().tacho_count
     startTime = time.time()
     armMotor.run(power = -85)
@@ -257,48 +255,24 @@ def binID():
     finalTime = time.time() - startTime
     armMotor.brake()
     print(finalTime)
-    '''n = 40
-    initialPos = armMotor.get_tacho().tacho_count
-    print(initialPos)
-    while n < 124:
-        armMotor.run(-n)
-        if abs(armMotor.get_tacho().tacho_count - initialPos) > 120:
-            print('done')
-            #armMotor.turn(-n, 120)
-            break
-        else:
-            n += 1
-    print(n)
-    armMotor.brake()
-    '''      
-    if finalTime < .31: #organic and ceramic are ~ the same time at power -85, maybe try a lower motor power first
-        #beep a shitton
-        binIdentity = 'Organic Bin'
-        brick.play_tone_and_wait(500, 250)
-        
+    
+    if finalTime < .31:
+        binIdentity = 'organic'
+
     elif finalTime < .36:
-        #beep also a shitton
-        binIdentity = 'Ceramic Bin'
-        brick.play_tone_and_wait(500, 250)
-        sleep(.1)
-        brick.play_tone_and_wait(500, 250)
+        binIdentity = 'ceramic'
+
     else:
-        # beep a lot of tons of shit
-        binIdentity = 'Metal Bin'
-        brick.play_tone_and_wait(500, 250)
-        sleep(.1)
-        brick.play_tone_and_wait(500, 250)
-        sleep(.1)
-        brick.play_tone_and_wait(500, 250)
+        binIdentity = 'metal'
+
     return(binIdentity)
     
 def binDropOff():
     
-    #stop
-    #turn 90
-    #drop bin
-    #backoff
-    #turn -90
+    armMotor.run(50)
+    sleep(1)
+    armMotor.idle()
+    
     return
 
 def taskOne():
@@ -372,8 +346,8 @@ def taskFive():
         try:
             print(ultrasonic.get_distance())
             if ultrasonic.get_distance() > 15:
-                #lineFollow(threshold, black, white)
-                step(120)
+                lineFollow(threshold, black, white)
+                #step(120)
             else:
                 sleep(.5)
                 #c = findBin()
@@ -420,48 +394,43 @@ def taskSix():
         turningMotor.idle()
         walkingMotor.idle()
     return
-    
-def taskInput():
-    task = raw_input("Input task number: ")
-    if task == '1':
-        task = taskOne
-    elif task == '2':
-        task = taskTwo
-    elif task == '3':
-        task = taskOne
-    elif task =='4':
-        task = taskFour
-    elif task == '5':
-        task = taskFive
-    elif task == '6':
-        task = taskSix
-    elif task == 'test':
-        task = test
-    else:
-        return
-    return task
-    
+
 def main():
+    n = 0
+    calibrateVals = calibrate()
+    black = calibrateVals[0]
+    white = calibrateVals[1]
+    threshold = calibrateVals[2]
+    
+    initialCompass = compass.get_distance()
+    delta = 30
+    minVal = initialCompass - delta
+    maxVal = initialCompass + delta
+    
     while True:
-     
-        task = taskInput()
-        print(task)
-        task()
+        if ultrasonic.getDistance() > 15 and (minVal < compass.get_distance() < maxVal):
+            lineFollow(threshold, black, white)
         
-        while True:
-            repeat = raw_input("Press Enter to repeat... ")
+        elif ultrasonic.getDistance() <= 15:
+            binIdenity = binPickup()
+            
+        elif binVal < compass.get_distance() < maxVal:
+            n += 1
+            if binIdentity == 'organic' and n == 1:
+                
+                binDropOff()
+                
+            elif binIdentity == 'ceramic' and n == 2:
+                
+                binDropOff()
+                
+            elif binIdentity == 'metal' and n == 3:
+                
+                binDropOff()
+            
         
-            if repeat != '':
-                
-                task = taskInput()
-                task()
-                
-            else:
-                task()
+       
+
     
-def test():
-    findBin()
-    
-while True:
-    print(brick.get_battery_level())
+main()
 
