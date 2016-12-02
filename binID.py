@@ -28,7 +28,7 @@ from nxt.sensor import Touch, PORT_4, PORT_3, PORT_2, Light, PORT_1, Ultrasonic
 #walkingMotor = Motor(brick, PORT_C)
 armMotor = Motor(brick, PORT_A)
 
-def binID2():
+def binID():
     start = time.time()
     '''
     init = brick.get_battery_level()
@@ -52,26 +52,13 @@ def binID2():
     mean = sumVal / n
     return(mean)
 
-
-def binID():
-    start = time.time()
-    sumVal = 0
-    n = 0
-    armMotor.run(90)
-    while time.time() - start < .1:
-        sumVal += brick.get_battery_level()
-        n += 1
-    armMotor.idle()
-    mean = sumVal / n
-    return(mean)
-
 def repeater():
     sumVal = 0
     n = 0
     userInput = ''
     armMotor.brake()
     while n < 10:
-        noLoad = binID2()
+        noLoad = binID()
         repeat = raw_input('Add bin')
         withLoad = binID2()
         diff = noLoad - withLoad

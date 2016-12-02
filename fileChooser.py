@@ -23,10 +23,10 @@ from nxt.sensor import Touch, PORT_4, PORT_3, PORT_2, Light, PORT_1, Ultrasonic
 
 #from basicFunctions import step, calibrate
 
-#light = Light(brick, PORT_1)
-#turningMotor = Motor(brick, PORT_B)
+light = Light(brick, PORT_1)
+turningMotor = Motor(brick, PORT_B)
 walkingMotor = Motor(brick, PORT_C)
-#armMotor = Motor(brick, PORT_A)
+armMotor = Motor(brick, PORT_A)
 legPosition = Touch(brick, PORT_3)
 #ultrasonic = Ultrasonic(brick, PORT_2)
 #compass = Ultrasonic(brick, PORT_4)
@@ -459,8 +459,7 @@ def main():
             else:
                 task()
     
-def test():
-    findBin()
+main()
     
 while True:
     print(brick.get_battery_level())

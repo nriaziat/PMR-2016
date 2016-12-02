@@ -31,9 +31,18 @@ armMotor = Motor(brick, PORT_A)
 walkingMotor.brake()
 armMotor.brake()
 
+def test(normalization, fileName):
+    with open(fileName, 'w') as outputFile:
+        outputFile.write('Initial value: %f' % normalization)
+        for i in range(1000):
+            diff = normalization - brick.get_battery_level()
+            outputFile.write('%f\n' % diff)
+            sleep(0.05)
+
 def main():
     repeat = ''
     while repeat == '':
+        normalization = 0
         for i in range(100):
             normalization += brick.get_battery_level()
             sleep(0.05)

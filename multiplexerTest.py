@@ -27,5 +27,5 @@ legPosition = Touch(brick, PORT_3)
 touch = Touch(brick, PORT_1)
 
 while True:
-    print(touch.get_state())
+    print(touch.get_input_values().calibrated_value)
 
