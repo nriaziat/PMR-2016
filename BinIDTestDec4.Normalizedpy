@@ -332,27 +332,19 @@ def binIDTest():
     battLevel = brick.get_battery_level()
     print(battLevel)
     binType = raw_input('Input bin type: ')
-    fileName = 'BinID_Dec3_2_' + binType + '.txt'
+    fileName = 'BinID_Dec4_normalized' + binType + '.txt'
     outputFile = open(fileName, 'w')
-    outputFile.write('Battery level: %.0f\n\n' % battLevel)
-    for j in range(5):
-        print(j+1)
-        i = 95
-        while True:
-            print(i)
-            battLevel = brick.get_battery_level()
-            sleep(.05)
-            binTime = binPickup(i)
-            sleep(.3)
-            binDropOff()
-            print(binTime)
-            repeat = raw_input('Repeat?')
-            if repeat == '':
-                outputFile.write('%f, %f, %f\n' % (battLevel, binTime, i))
-                i -= 1
-            else:
-                break
-    outputFile.close()
+    while repeat == '':
+        battLevel = brick.get_battery_level()
+        normVal = 85.0 / float(battLevel) * 7500.0
+        print('%.3f' % normVal)
+        sleep(.05)
+        binTime = binPickup(normVal)
+        sleep(.3)
+        binDropOff()
+        print(binTime)
+        repeat = raw_input('Repeat?')
+        outputFile.write('\n%f, %f, %f' % (binTime, normVal, battLevel)
     return
 
 binIDTest()

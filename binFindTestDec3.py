@@ -38,7 +38,7 @@ compass = Ultrasonic(brick, PORT_3)
 
 # LINE FOLLOW VARIABLES
 turningPower = 70 # 70, motor power used when turning in line follow
-negInertiaPower = 70 # 65, motor power for negative inertia
+negInertiaPower = 65 # 65, motor power for negative inertia
 findLineTimeOut = 0.5 # 0.5, time between switching motor to the opposite direction
 negInertiaLengthOnWhite = 0.2 # 0.2, time before braking on negative inertia when originally on white
 negInertiaLengthOnBlack = 0.05 # 0.05, time before braking on negative inertia when originally on black (should be smaller than white to prevent overshooting the line)
@@ -46,13 +46,13 @@ negInertiaLengthOnBlack = 0.05 # 0.05, time before braking on negative inertia w
 # CALIBRATION VARIABLES
 calTurningPower = 70 # 70, motor power used to turn when calibrate
 calFirstTurnTime = 0.2 # 0.2, time to turn on first turn
-calSecondTurnTme = 0.1 # 0.15, time to turn on second turn
+calSecondTurnTme = 0.15 # 0.15, time to turn on second turn
 calDelta = 10 # no default since it's new, range of light values for which line follow continues going straight (range is 2 * delta)
 
 # BIN PICKUP VARIABLES
 binDistance = 8 # 8, ultrasonic reading where PMR stops following line and starts looking for bin
 findBinDelta = 5 # 3, 
-pickupMotorPower = 85 # 90, motor power used to pick up bin (and identify it)
+pickupMotorPower = 90 # 90, motor power used to pick up bin (and identify it)
 
 # BIN ID VARIABLES
 organicCeramicBound = 0.418654 # this is just a bs value atm
@@ -82,7 +82,7 @@ def armPosition():
           
 def step(forwardPower = 120):
     walkingMotor.run(forwardPower)
-    sleep(.2) # give it time to move off touch sensor
+    sleep(.1) # give it time to move off touch sensor
     while not legPosition():
         pass
     walkingMotor.run(0)
@@ -92,7 +92,7 @@ def step(forwardPower = 120):
 def calibrate():
     # turn on light sensor
     light.set_illuminated(True)
-    step(100)
+    step()
     
     sleep(0.25)
     
@@ -257,10 +257,10 @@ def lineFollow(lowerThreshold, upperThreshold):
     findLine(lowerThreshold, upperThreshold)
     return
     
-def binPickup(temp):
+def binPickup():
     start = time.time()
     startPos = armMotor.get_tacho().tacho_count
-    armMotor.run(-temp)
+    armMotor.run(-pickupMotorPower)
     while abs(armMotor.get_tacho().tacho_count - startPos) < 100:
         pass
     armMotor.brake()
@@ -289,12 +289,9 @@ def binDropOff():
     while not armPosition():
         pass
     armMotor.idle()
-    '''
     for i in range(3):
         step(-120)
-    '''
     return
-    
     
 def main():
     print('\nBattery Level: %f' % brick.get_battery_level())
@@ -305,8 +302,8 @@ def main():
         while ultrasonic.get_distance() > binDistance:
             lineFollow(lowerThreshold, upperThreshold)
         
-        while ultrasonic.get_distance() <= 8:
-            findLine(lowerThreshold, upperThreshold)
+        while ultrasonic.get_distance() < 5:
+            findLine()
             step(100)
         binIdentity = binID() # picks up bin and returns what it is (1 for organic, 2 for ceramic, 3 for metallic)
         hasBin = True
@@ -316,7 +313,7 @@ def main():
         compassLower = initialCompass - compassDelta
         while hasBin:
             if compassLower < compass.get_distance() < compassUpper:
-                lineFollow(lowerThreshold, upperThreshold)
+                lineFollow()
             else:
                 n += 1 # bin drop off location found
                 if n == binIdentity:
@@ -324,35 +321,16 @@ def main():
                     hasBin = False
                 else:
                     for i in range(binDropOffStepBuffer): # don't want to register the same bin drop off location twice, may not be necessary
-                        lineFollow(lowerThreshold, upperThreshold)
+                        lineFollow()
 
 #main()
 
-def binIDTest():
-    battLevel = brick.get_battery_level()
-    print(battLevel)
-    binType = raw_input('Input bin type: ')
-    fileName = 'BinID_Dec3_2_' + binType + '.txt'
-    outputFile = open(fileName, 'w')
-    outputFile.write('Battery level: %.0f\n\n' % battLevel)
-    for j in range(5):
-        print(j+1)
-        i = 95
-        while True:
-            print(i)
-            battLevel = brick.get_battery_level()
-            sleep(.05)
-            binTime = binPickup(i)
-            sleep(.3)
-            binDropOff()
-            print(binTime)
-            repeat = raw_input('Repeat?')
-            if repeat == '':
-                outputFile.write('%f, %f, %f\n' % (battLevel, binTime, i))
-                i -= 1
-            else:
-                break
-    outputFile.close()
-    return
+while ultrasonic.get_distance() >= 7:
+    step(100)
+    print(ultrasonic.get_distance())
+    sleep(.1)
+    
+binPickup()
 
-binIDTest()
+sleep(.5)
+binDropOff()

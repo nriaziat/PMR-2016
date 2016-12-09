@@ -52,11 +52,11 @@ calDelta = 10 # no default since it's new, range of light values for which line 
 # BIN PICKUP VARIABLES
 binDistance = 8 # 8, ultrasonic reading where PMR stops following line and starts looking for bin
 findBinDelta = 5 # 3, 
-pickupMotorPower = 85 # 90, motor power used to pick up bin (and identify it)
+pickupMotorPower = 85 # 85, motor power used to pick up bin (and identify it)
 
 # BIN ID VARIABLES
-organicCeramicBound = 0.418654 # this is just a bs value atm
-ceramicMetallicBound = 0.4403975 # ^
+organicCeramicBound = 0.465 # last updated Dec 4
+ceramicMetallicBound = 0.52 # ^
 
 # BIN DROP OFF VARIABLES
 compassDelta = 30 # 30, anything outside of this range means we're at a bin drop off
@@ -257,10 +257,11 @@ def lineFollow(lowerThreshold, upperThreshold):
     findLine(lowerThreshold, upperThreshold)
     return
     
-def binPickup(temp):
+def binPickup():
+    normVal = float(pickupMotorPower) / float(brick.get_battery_level()) * 8000.0
     start = time.time()
     startPos = armMotor.get_tacho().tacho_count
-    armMotor.run(-temp)
+    armMotor.run(-normVal)
     while abs(armMotor.get_tacho().tacho_count - startPos) < 100:
         pass
     armMotor.brake()
@@ -269,6 +270,7 @@ def binPickup(temp):
 
 def binID():
     timeDifference = binPickup()
+    print(timeDifference)
     if timeDifference < organicCeramicBound:
         binIdentity = 1
     elif timeDifference < ceramicMetallicBound:
@@ -331,28 +333,24 @@ def main():
 def binIDTest():
     battLevel = brick.get_battery_level()
     print(battLevel)
-    binType = raw_input('Input bin type: ')
-    fileName = 'BinID_Dec3_2_' + binType + '.txt'
-    outputFile = open(fileName, 'w')
-    outputFile.write('Battery level: %.0f\n\n' % battLevel)
-    for j in range(5):
-        print(j+1)
-        i = 95
-        while True:
-            print(i)
-            battLevel = brick.get_battery_level()
-            sleep(.05)
-            binTime = binPickup(i)
-            sleep(.3)
-            binDropOff()
-            print(binTime)
-            repeat = raw_input('Repeat?')
-            if repeat == '':
-                outputFile.write('%f, %f, %f\n' % (battLevel, binTime, i))
-                i -= 1
-            else:
-                break
-    outputFile.close()
+    numTotal = 0
+    numSuccesses = 0
+    while True:
+        binType = random.randint(1, 3)
+        print(binType)
+        raw_input('Enter to ID')
+        binIdentity = binID()
+        sleep(.3)
+        binDropOff()
+        print(binIdentity)
+        if binIdentity == binType:
+            print('Success')
+            numSuccesses += 1
+        else:
+            print('Failure')
+        numTotal += 1
+        percent = float(numSuccesses) / float(numTotal)
+        print('%.0f / %.0f\n%f' % (numSuccesses, numTotal, percent))
     return
 
 binIDTest()

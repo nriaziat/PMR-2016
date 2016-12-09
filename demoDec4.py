@@ -37,26 +37,25 @@ compass = Ultrasonic(brick, PORT_3)
 # line follow data
 
 # LINE FOLLOW VARIABLES
-turningPower = 70 # 70, motor power used when turning in line follow
-negInertiaPower = 70 # 65, motor power for negative inertia
+turningPower = 58 # 70, normalized, motor power used when turning in line follow
+negInertiaPower = 70 # 65, normalized, motor power for negative inertia
 findLineTimeOut = 0.5 # 0.5, time between switching motor to the opposite direction
-negInertiaLengthOnWhite = 0.2 # 0.2, time before braking on negative inertia when originally on white
-negInertiaLengthOnBlack = 0.05 # 0.05, time before braking on negative inertia when originally on black (should be smaller than white to prevent overshooting the line)
+negInertiaLengthOnWhite = 0.07 # 0.2, time before braking on negative inertia when originally on white
+negInertiaLengthOnBlack = 0.07 # 0.05, time before braking on ngative inertia when originally on black (should be smaller than white to prevent overshooting the line)
 
 # CALIBRATION VARIABLES
-calTurningPower = 70 # 70, motor power used to turn when calibrate
+calTurningPower = 70 # 70, normalized, motor power used to turn when calibrate
 calFirstTurnTime = 0.2 # 0.2, time to turn on first turn
 calSecondTurnTme = 0.1 # 0.15, time to turn on second turn
 calDelta = 10 # no default since it's new, range of light values for which line follow continues going straight (range is 2 * delta)
 
 # BIN PICKUP VARIABLES
-binDistance = 8 # 8, ultrasonic reading where PMR stops following line and starts looking for bin
-findBinDelta = 5 # 3, 
-pickupMotorPower = 85 # 90, motor power used to pick up bin (and identify it)
+binDistance = 8 # 8, ultrasonic reading where PMR stops following line and starts looking for bin 
+pickupMotorPower = 85 # 85, motor power used to pick up bin (and identify it)
 
 # BIN ID VARIABLES
-organicCeramicBound = 0.418654 # this is just a bs value atm
-ceramicMetallicBound = 0.4403975 # ^
+organicCeramicBound = 0.48 # 0.465, last updated Dec 4
+ceramicMetallicBound = 0.52 # 0.52
 
 # BIN DROP OFF VARIABLES
 compassDelta = 30 # 30, anything outside of this range means we're at a bin drop off
@@ -79,6 +78,10 @@ def armPosition():
         return True
     else:
         return False
+
+def normalize(power):
+    normalizedPower = float(power) / float(brick.get_battery_level()) * 8000.0
+    return normalizedPower
           
 def step(forwardPower = 120):
     walkingMotor.run(forwardPower)
@@ -92,7 +95,9 @@ def step(forwardPower = 120):
 def calibrate():
     # turn on light sensor
     light.set_illuminated(True)
-    step(100)
+    motorPower = normalize(calTurningPower)
+    if not legPosition():
+        step(100)
     
     sleep(0.25)
     
@@ -101,7 +106,7 @@ def calibrate():
     print("Black = %d" % black)
     
     # turns right ~30 degrees
-    turningMotor.run(calTurningPower)
+    turningMotor.run(-motorPower)
     sleep(calFirstTurnTime)
     turningMotor.run(0)
     turningMotor.brake()
@@ -110,7 +115,7 @@ def calibrate():
     # calibrates white value
     white = light.get_lightness()
 
-    turningMotor.run(-calTurningPower)
+    turningMotor.run(motorPower)
     sleep(calSecondTurnTme)
     turningMotor.run(0)
     turningMotor.brake()
@@ -190,10 +195,12 @@ def findBin():
 def findLine(lowerThreshold, upperThreshold):
     n = 0
     timeOut = findLineTimeOut
+    normTurningPower = normalize(turningPower)
+    normNegInertia = normalize(negInertiaPower)
     if light.get_lightness() > upperThreshold:
         # white
-        direction = -1
-        turningMotor.run(direction * turningPower)
+        direction = 1
+        turningMotor.run(direction * normTurningPower)
         start = time.time()
         while light.get_lightness() > upperThreshold:
             if time.time() - start < timeOut:
@@ -201,14 +208,26 @@ def findLine(lowerThreshold, upperThreshold):
             elif n == 0:
                 start = time.time()
                 direction *= -1
-                turningMotor.run(direction * turningPower)
-                timeOut *= 2
+                turningMotor.run(direction * normTurningPower)
+                timeOut = 2 * findLineTimeOut
                 n += 1
             elif n == 1:
                 start = time.time()
                 direction *= -1
-                turningMotor.run(direction * turningPower)
-                timeOut *= .5
+                turningMotor.run(direction * normTurningPower)
+                timeOut = 3 * findLineTimeOut
+                n += 1
+            elif n == 2:
+                start = time.time()
+                direction *= -1
+                turningMotor.run(direction * normTurningPower)
+                timeOut = 4 * findLineTimeOut
+                n += 1
+            elif n == 3:
+                start = time.time()
+                direction *= -1
+                turningMotor.run(direction * normTurningPower)
+                timeOut = 2 * findLineTimeOut
                 n += 1
             else:
                 turningMotor.run(0)
@@ -216,14 +235,14 @@ def findLine(lowerThreshold, upperThreshold):
                 return
         turningMotor.run(0)
         turningMotor.brake()
-        turningMotor.run(- direction * negInertiaPower)
+        turningMotor.run(- direction * normNegInertia)
         sleep(negInertiaLengthOnWhite)
         turningMotor.brake()
         return
     else:
         # black
-        direction = 1
-        turningMotor.run(direction * turningPower)
+        direction = -1
+        turningMotor.run(direction * normTurningPower)
         start = time.time()
         while light.get_lightness() < lowerThreshold:
             if time.time() - start < timeOut:
@@ -231,14 +250,26 @@ def findLine(lowerThreshold, upperThreshold):
             elif n == 0:
                 start = time.time()
                 direction *= -1
-                turningMotor.run(direction * turningPower)
-                timeOut *= 2
+                turningMotor.run(direction * normTurningPower)
+                timeOut = 2 * findLineTimeOut
                 n += 1
             elif n == 1:
                 start = time.time()
                 direction *= -1
-                turningMotor.run(direction * turningPower)
-                timeOut *= .5
+                turningMotor.run(direction * normTurningPower)
+                timeOut = 3 * findLineTimeOut
+                n += 1
+            elif n == 2:
+                start = time.time()
+                direction *= -1
+                turningMotor.run(direction * normTurningPower)
+                timeOut = 4 * findLineTimeOut
+                n += 1
+            elif n == 3:
+                start = time.time()
+                direction *= -1
+                turningMotor.run(direction * normTurningPower)
+                timeOut = 2 * findLineTimeOut
                 n += 1
             else:
                 turningMotor.run(0)
@@ -246,7 +277,7 @@ def findLine(lowerThreshold, upperThreshold):
                 return
         turningMotor.run(0)
         turningMotor.brake()
-        turningMotor.run(power = - direction * negInertiaPower)
+        turningMotor.run(power = - direction * normNegInertia)
         sleep(negInertiaLengthOnBlack)
         turningMotor.run(0)
         turningMotor.brake()
@@ -257,10 +288,11 @@ def lineFollow(lowerThreshold, upperThreshold):
     findLine(lowerThreshold, upperThreshold)
     return
     
-def binPickup(temp):
+def binPickup():
+    normVal = normalize(pickupMotorPower)
     start = time.time()
     startPos = armMotor.get_tacho().tacho_count
-    armMotor.run(-temp)
+    armMotor.run(-normVal)
     while abs(armMotor.get_tacho().tacho_count - startPos) < 100:
         pass
     armMotor.brake()
@@ -302,9 +334,9 @@ def main():
     lowerThreshold = threshold - calDelta
     upperThreshold = threshold + calDelta
     while True:
-        while ultrasonic.get_distance() > binDistance:
+        while ultrasonic.get_distance() > 15:
             lineFollow(lowerThreshold, upperThreshold)
-        
+        print('Bin found')
         while ultrasonic.get_distance() <= 8:
             findLine(lowerThreshold, upperThreshold)
             step(100)
@@ -325,34 +357,28 @@ def main():
                 else:
                     for i in range(binDropOffStepBuffer): # don't want to register the same bin drop off location twice, may not be necessary
                         lineFollow(lowerThreshold, upperThreshold)
-
-#main()
-
+try:
+    main()
+except KeyboardInterrupt:
+    armMotor.idle()
+    walkingMotor.idle()
+    turningMotor.idle()
+'''
 def binIDTest():
     battLevel = brick.get_battery_level()
     print(battLevel)
     binType = raw_input('Input bin type: ')
-    fileName = 'BinID_Dec3_2_' + binType + '.txt'
+    fileName = 'BinID_Dec4_normalized' + binType + '.txt'
     outputFile = open(fileName, 'w')
-    outputFile.write('Battery level: %.0f\n\n' % battLevel)
-    for j in range(5):
-        print(j+1)
-        i = 95
-        while True:
-            print(i)
-            battLevel = brick.get_battery_level()
-            sleep(.05)
-            binTime = binPickup(i)
-            sleep(.3)
-            binDropOff()
-            print(binTime)
-            repeat = raw_input('Repeat?')
-            if repeat == '':
-                outputFile.write('%f, %f, %f\n' % (battLevel, binTime, i))
-                i -= 1
-            else:
-                break
-    outputFile.close()
+    repeat = ''
+    for i in range(25):
+        binTime = binPickup()
+        sleep(.3)
+        binDropOff()
+        print(binTime)
+        repeat = raw_input('Repeat?')
+        outputFile.write('\n%f' % binTime)
     return
 
 binIDTest()
+'''
